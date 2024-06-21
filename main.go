@@ -17,12 +17,19 @@ func run() int {
 		return 1
 	}
 
-	ip, err := myIPFromCloudflareWithRetries(3)
+	cloudflareIP, err := myIPFromCloudflareWithRetries(3)
 	if err != nil {
 		log.Fatal(err)
 		return 1
 	}
-	log.Infof("My External IP obtained using Cloudflare: %q", ip)
+	log.Infof("My External IP obtained using Cloudflare: %q", cloudflareIP)
+
+	ipifyIP, err := myIPFromIPify()
+	if err != nil {
+		log.Fatal(err)
+		return 1
+	}
+	log.Infof("External IP info obtained from ipify.org: %q", ipifyIP)
 
 	ipInfo, err := myIPFromIPInfo()
 	if err != nil {
@@ -31,23 +38,29 @@ func run() int {
 	}
 	log.Infof("External IP info obtained from ipinfo.io:\n%s", prettyPrintJSON(ipInfo))
 
-	if ip != ipInfo.IP {
+	if cloudflareIP != ipInfo.IP {
 		log.Warnf(
 			"Conflicting External IP information between Cloudflare whoami (%s) and ipinfo.io (%s)",
-			ip, ipInfo.IP)
+			cloudflareIP, ipInfo.IP)
+		log.Warnf("Using the External IP information from Cloudflare whoami as the trusted source for updating ...")
+	}
+	if cloudflareIP != ipifyIP {
+		log.Warnf(
+			"Conflicting External IP information between Cloudflare whoami (%s) and ipify.org (%s)",
+			cloudflareIP, ipifyIP)
 		log.Warnf("Using the External IP information from Cloudflare whoami as the trusted source for updating ...")
 	}
 
 	updated, err := updateCloudflareDNSRecord(
-		context.Background(), *cloudflareAPIToken, *cloudflareZoneName, *domainName, ip)
+		context.Background(), *cloudflareAPIToken, *cloudflareZoneName, *domainName, cloudflareIP)
 	if err != nil {
 		log.Fatal(err)
 		return 1
 	}
 	if updated {
-		log.Infof("Updated External IP %q in the A record for domain %q", ip, *domainName)
+		log.Infof("Updated External IP %q in the A record for domain %q", cloudflareIP, *domainName)
 	} else {
-		log.Infof("External IP %q in the A record for domain %q is already up to date", ip, *domainName)
+		log.Infof("External IP %q in the A record for domain %q is already up to date", cloudflareIP, *domainName)
 	}
 
 	return 0
