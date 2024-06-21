@@ -7,9 +7,7 @@ import (
 	"github.com/tuxdude/zzzlogi"
 )
 
-var (
-	log = buildLogger()
-)
+var log = buildLogger()
 
 func buildLogger() zzzlogi.Logger {
 	flag.Parse()
