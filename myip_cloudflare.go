@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"net"
@@ -30,14 +31,16 @@ func myIPFromCloudflare() (string, bool, error) {
 
 	resp, rtt, err := client.Exchange(&msg, cloudflareCurrentIPResolver)
 	if err != nil {
-		opErr, ok := err.(*net.OpError)
-		if ok {
-			log.Debugf("CH TXT record query failed due to an OpError, isTimeout: %t\n%s", opErr.Timeout(), prettyPrintJSON(err))
+		timeout := false
+		var opErr *net.OpError
+		if errors.As(err, &opErr) {
+			timeout = opErr.Timeout()
+			log.Debugf("CH TXT record query failed due to an OpError, isTimeout: %t\n%s", timeout, prettyPrintJSON(err))
 		} else {
 			log.Warnf("CH TXT record query failed:\n%s", prettyPrintJSON(err))
 		}
 
-		return "", (ok && opErr.Timeout()), fmt.Errorf("CH TXT record query failed, reason: %w", err)
+		return "", timeout, fmt.Errorf("CH TXT record query failed, reason: %w", err)
 	}
 
 	log.Debugf(
@@ -54,7 +57,12 @@ func myIPFromCloudflare() (string, bool, error) {
 			"Found %d entries in answer section when only 1 is expected. Using just the first one instead ...",
 			len(resp.Answer))
 	}
-	txt := resp.Answer[0].(*dns.TXT)
+
+	txt, ok := resp.Answer[0].(*dns.TXT)
+	if !ok {
+		return "", false, fmt.Errorf("Expected type dns.TXT, but rather obtained: %T", resp.Answer[0])
+	}
+
 	if len(txt.Txt) > 1 {
 		log.Warnf(
 			"Found %d TXT records in the answer section when only 1 is expected. Using just the first one instead ...",
@@ -78,8 +86,8 @@ func myIPFromCloudflareWithRetries(maxRetries uint32) (string, error) {
 		log.Warnf("Backing off %v before retrying ...", duration)
 		time.Sleep(duration)
 
-		retryAttempt += 1
-		backoff = backoff * 2
+		retryAttempt++
+		backoff *= 2
 
 		if retryAttempt > maxRetries {
 			return ip, err

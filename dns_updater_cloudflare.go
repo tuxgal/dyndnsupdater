@@ -41,7 +41,7 @@ func getDNSRecord(ctx context.Context, api *cloudflare.API, zoneName string, dom
 func updateCloudflareDNSRecord(
 	ctx context.Context, apiToken string, zoneName string, domainName string, externalIP string,
 ) (bool, error) {
-	api, err := cloudflare.NewWithAPIToken(*cloudflareAPIToken)
+	api, err := cloudflare.NewWithAPIToken(apiToken)
 	if err != nil {
 		return false, fmt.Errorf("failed to initialize API object, reason: %w", err)
 	}

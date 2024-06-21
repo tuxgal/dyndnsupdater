@@ -24,14 +24,14 @@ func run() int {
 	}
 	log.Infof("My External IP obtained using Cloudflare: %q", cloudflareIP)
 
-	ipifyIP, err := myIPFromIPify()
+	ipifyIP, err := myIPFromIPify(context.Background())
 	if err != nil {
 		log.Fatal(err)
 		return 1
 	}
 	log.Infof("External IP info obtained from ipify.org: %q", ipifyIP)
 
-	ipInfo, err := myIPFromIPInfo()
+	ipInfo, err := myIPFromIPInfo(context.Background())
 	if err != nil {
 		log.Fatal(err)
 		return 1

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -18,8 +19,11 @@ type IPInfoResponse struct {
 	Timezone string
 }
 
-func myIPFromIPInfo() (*IPInfoResponse, error) {
-	resp, err := httpGet("https://ipinfo.io/json", 10*time.Second, "ipinfo.io GET")
+func myIPFromIPInfo(ctx context.Context) (*IPInfoResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	resp, err := httpGet(ctx, "https://ipinfo.io/json", "ipinfo.io GET")
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +31,7 @@ func myIPFromIPInfo() (*IPInfoResponse, error) {
 	result := IPInfoResponse{}
 	err = json.Unmarshal(resp, &result)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ipinfo.io response as JSON, response: %s\nreason: %w", string(resp[:]), err)
+		return nil, fmt.Errorf("failed to parse ipinfo.io response as JSON, response: %s\nreason: %w", string(resp), err)
 	}
 
 	return &result, nil

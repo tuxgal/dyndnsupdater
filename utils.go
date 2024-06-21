@@ -1,12 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 )
 
 // Returns the JSON formatted string representation of the specified object.
@@ -29,11 +29,14 @@ func isFlagPassed(name string) bool {
 	return found
 }
 
-func httpGet(uri string, timeout time.Duration, comment string) ([]byte, error) {
-	client := &http.Client{
-		Timeout: 10 * time.Second,
+func httpGet(ctx context.Context, uri string, comment string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed creating a new HTTP request, reason: %w", err)
 	}
-	resp, err := client.Get("https://ipinfo.io/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("%s failed,\nresp: %s\nreason: %w", comment, prettyPrintJSON(resp), err)
 	}
@@ -46,7 +49,7 @@ func httpGet(uri string, timeout time.Duration, comment string) ([]byte, error) 
 		return nil, fmt.Errorf("%s failed while reading the body,\nresp: %s\nreason: %w", comment, prettyPrintJSON(resp), err)
 	}
 
-	respStr := string(body[:])
+	respStr := string(body)
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("%s failed due to non-success status code: %d\nbody: %s", comment, resp.StatusCode, respStr)
 	}
