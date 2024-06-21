@@ -29,14 +29,14 @@ func run() int {
 		log.Fatal(err)
 		return 1
 	}
-	log.Infof("External IP info obtained from ipify.org: %q", ipifyIP)
+	log.Infof("My External IP obtained using ipify.org: %q", ipifyIP)
 
 	ipInfo, err := myIPFromIPInfo(context.Background())
 	if err != nil {
 		log.Fatal(err)
 		return 1
 	}
-	log.Infof("External IP info obtained from ipinfo.io:\n%s", prettyPrintJSON(ipInfo))
+	log.Infof("My External IP info obtained using ipinfo.io:\n%s", prettyPrintJSON(ipInfo))
 
 	if cloudflareIP != ipInfo.IP {
 		log.Warnf(
