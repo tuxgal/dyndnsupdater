@@ -61,6 +61,12 @@ func myIPFromIPAPI(ctx context.Context) (*IPAPIResponse, error) {
 }
 
 func toExternalIPInfo(ipapi *IPAPIResponse, ip string) *ExternalIPInfo {
+	if ipapi == nil {
+		return &ExternalIPInfo{
+			IP: ip,
+		}
+	}
+
 	return &ExternalIPInfo{
 		IP:  ip,
 		RIR: ipapi.RIR,

@@ -109,13 +109,13 @@ func updateExternalIP(ctx context.Context, token string, zone string, domain str
 	}
 
 	if cloudflareIP != "" {
-		if cloudflareIP != ipInfo.IP {
+		if ipInfo.IP != "" && cloudflareIP != ipInfo.IP {
 			log.Warnf(
 				"Conflicting External IP information between Cloudflare whoami (%s) and ipinfo.io (%s)",
 				cloudflareIP, ipInfo.IP)
 			log.Warnf("Using the External IP information from Cloudflare whoami as the trusted source for updating ...")
 		}
-		if cloudflareIP != ipifyIP {
+		if ipifyIP != "" && cloudflareIP != ipifyIP {
 			log.Warnf(
 				"Conflicting External IP information between Cloudflare whoami (%s) and ipify.org (%s)",
 				cloudflareIP, ipifyIP)
