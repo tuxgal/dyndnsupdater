@@ -7,54 +7,54 @@ import (
 	"github.com/cloudflare/cloudflare-go"
 )
 
-func getDNSRecord(ctx context.Context, api *cloudflare.API, zoneName string, domainName string) (*cloudflare.DNSRecord, error) {
-	zid, err := api.ZoneIDByName(zoneName)
+func getDNSRecord(ctx context.Context, api *cloudflare.API, zone string, domain string) (*cloudflare.DNSRecord, error) {
+	zid, err := api.ZoneIDByName(zone)
 	if err != nil {
-		return nil, fmt.Errorf("failed to obtain Zone ID for zone %q, reason: %w", zoneName, err)
+		return nil, fmt.Errorf("failed to obtain Zone ID for zone %q, reason: %w", zone, err)
 	}
-	log.Debugf("Zone ID for zone %q: %q", zoneName, zid)
+	log.Debugf("Zone ID for zone %q: %q", zone, zid)
 
 	records, _, err := api.ListDNSRecords(
 		ctx,
 		cloudflare.ZoneIdentifier(zid),
 		cloudflare.ListDNSRecordsParams{
 			Type: "A",
-			Name: domainName,
+			Name: domain,
 		})
 	if err != nil {
 		return nil, fmt.Errorf(
 			"failed to list DNS A records for domain %q in zone %q, reason: %w",
-			domainName, zoneName, err)
+			domain, zone, err)
 	}
 	log.Debugf(
 		"Existing DNS Record(s) for domain %q in zone %q:\n%s",
-		domainName, zoneName, prettyPrintJSON(records))
+		domain, zone, prettyPrintJSON(records))
 
 	if len(records) != 1 {
 		return nil, fmt.Errorf(
 			"Expected %d A record for domain name %q, but obtained %d instead\nRecord(s):\n%s",
-			1, domainName, len(records), prettyPrintJSON(records))
+			1, domain, len(records), prettyPrintJSON(records))
 	}
 	return &records[0], nil
 }
 
 func updateCloudflareDNSRecord(
-	ctx context.Context, apiToken string, zoneName string, domainName string, externalIP string,
+	ctx context.Context, token string, zone string, domain string, ip string,
 ) (bool, error) {
-	api, err := cloudflare.NewWithAPIToken(apiToken)
+	api, err := cloudflare.NewWithAPIToken(token)
 	if err != nil {
 		return false, fmt.Errorf("failed to initialize API object, reason: %w", err)
 	}
 
-	origRecord, err := getDNSRecord(ctx, api, zoneName, domainName)
+	origRecord, err := getDNSRecord(ctx, api, zone, domain)
 	if err != nil {
 		return false, err
 	}
 
-	if origRecord.Content == externalIP {
+	if origRecord.Content == ip {
 		log.Debugf(
 			" The A record for domain %q in zone %q is already up to date with the desired External IP %q",
-			domainName, zoneName, externalIP)
+			domain, zone, ip)
 		return false, nil
 	}
 
@@ -64,7 +64,7 @@ func updateCloudflareDNSRecord(
 		cloudflare.UpdateDNSRecordParams{
 			Type:     "A",
 			Name:     origRecord.Name,
-			Content:  externalIP,
+			Content:  ip,
 			Data:     origRecord.Data,
 			Priority: origRecord.Priority,
 			ID:       origRecord.ID,
@@ -77,7 +77,7 @@ func updateCloudflareDNSRecord(
 	if err != nil {
 		return false, fmt.Errorf(
 			"failed to update DNS A record with IP %q for domain %q in zone %q, reason: %w",
-			externalIP, domainName, zoneName, err)
+			ip, domain, zone, err)
 	}
 
 	log.Debugf("Updated DNS Record:\n%s", prettyPrintJSON(record))

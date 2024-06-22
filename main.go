@@ -4,92 +4,13 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"time"
 )
 
 const (
-	myIPFromCloudflareMaxRetries = 3
+	timestampFormat = "2006-01-02T15:04:05.000Z0700"
 )
-
-func runOnce(failOnError bool) error {
-	ip := ""
-
-	cloudflareIP, err := myIPFromCloudflareWithRetries(myIPFromCloudflareMaxRetries)
-	if err != nil {
-		if failOnError {
-			return err
-		} else {
-			log.Error(err)
-		}
-	} else {
-		log.Infof("My External IP obtained using Cloudflare: %q", cloudflareIP)
-		ip = cloudflareIP
-	}
-
-	ipifyIP, err := myIPFromIPify(context.Background())
-	if err != nil {
-		if failOnError {
-			return err
-		} else {
-			log.Error(err)
-		}
-	} else {
-		log.Infof("My External IP obtained using ipify.org: %q", ipifyIP)
-		if ip == "" {
-			log.Warnf("Using External IP obtained from ipify.org instead of Cloudflare")
-			ip = ipifyIP
-		}
-	}
-
-	ipInfo, err := myIPFromIPInfo(context.Background())
-	if err != nil {
-		if failOnError {
-			return err
-		} else {
-			log.Error(err)
-		}
-	} else {
-		log.Infof("My External IP info obtained using ipinfo.io:\n%s", prettyPrintJSON(ipInfo))
-		if ip == "" {
-			log.Warnf("Using External IP obtained from ipinfo.io instead of Cloudflare")
-			ip = ipInfo.IP
-		}
-	}
-
-	if ip == "" {
-		return fmt.Errorf("Unable to obtain External IP from any of the sources, skipping DNS record update ...")
-	}
-
-	if cloudflareIP != "" {
-		if cloudflareIP != ipInfo.IP {
-			log.Warnf(
-				"Conflicting External IP information between Cloudflare whoami (%s) and ipinfo.io (%s)",
-				cloudflareIP, ipInfo.IP)
-			log.Warnf("Using the External IP information from Cloudflare whoami as the trusted source for updating ...")
-		}
-		if cloudflareIP != ipifyIP {
-			log.Warnf(
-				"Conflicting External IP information between Cloudflare whoami (%s) and ipify.org (%s)",
-				cloudflareIP, ipifyIP)
-			log.Warnf("Using the External IP information from Cloudflare whoami as the trusted source for updating ...")
-		}
-	}
-
-	updated, err := updateCloudflareDNSRecord(
-		context.Background(), *cloudflareAPIToken, *cloudflareZoneName, *domainName, ip)
-	if err != nil {
-		return err
-	}
-	if updated {
-		log.Infof("Updated External IP %q in the A record for domain %q", cloudflareIP, *domainName)
-	} else {
-		log.Infof("External IP %q in the A record for domain %q is already up to date", cloudflareIP, *domainName)
-	}
-
-	return nil
-}
 
 func checkExporterTerminated(ch chan interface{}) bool {
 	timeout := time.NewTimer(100 * time.Millisecond)
@@ -110,7 +31,6 @@ func run() int {
 	}
 
 	forever := *daemon
-	ranAtLeastOnce := false
 	result := 1
 	exporterTerminatedCh := make(chan interface{}, 1)
 
@@ -121,7 +41,7 @@ func run() int {
 		time.Sleep(time.Duration(200 * time.Millisecond))
 	}
 
-	for forever || !ranAtLeastOnce {
+	for {
 		nextUpdateTime := time.Now().Add(*updateFreq)
 
 		if forever {
@@ -135,7 +55,8 @@ func run() int {
 		}
 
 		startTime := time.Now()
-		err := runOnce(false)
+		err := updateExternalIP(
+			context.Background(), *cloudflareAPIToken, *cloudflareZoneName, *domainName, !forever)
 		if err != nil {
 			log.Errorf("Error querying External IP and updating DNS record, reason: %w", err)
 		} else {
@@ -143,12 +64,13 @@ func run() int {
 			if !forever {
 				result = 0
 			}
-			log.Infof("Update took %v since beginning at %v", endTime.Sub(startTime), startTime)
+			log.Infof("Update took %v since beginning at %s", endTime.Sub(startTime), startTime.Format(timestampFormat))
 		}
 
-		ranAtLeastOnce = true
 		if forever {
 			time.Sleep(time.Until(nextUpdateTime))
+		} else {
+			break
 		}
 	}
 
