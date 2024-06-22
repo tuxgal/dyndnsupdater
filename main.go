@@ -4,58 +4,83 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
+	"time"
 )
 
-func run() int {
-	if !isFlagPassed("dnsApi") {
-		log.Fatalf("-dnsApi flag must be specified")
-		return 1
-	}
-	if *dnsApi != "cloudflare" {
-		log.Fatalf("%q is an invalid value for -dnsApi flag. The only supported and valid option at the moment is 'cloudflare'", *dnsApi)
-		return 1
-	}
+const (
+	myIPFromCloudflareMaxRetries = 3
+)
 
-	cloudflareIP, err := myIPFromCloudflareWithRetries(3)
+func runOnce(failOnError bool) error {
+	ip := ""
+
+	cloudflareIP, err := myIPFromCloudflareWithRetries(myIPFromCloudflareMaxRetries)
 	if err != nil {
-		log.Fatal(err)
-		return 1
+		if failOnError {
+			return err
+		} else {
+			log.Error(err)
+		}
+	} else {
+		log.Infof("My External IP obtained using Cloudflare: %q", cloudflareIP)
+		ip = cloudflareIP
 	}
-	log.Infof("My External IP obtained using Cloudflare: %q", cloudflareIP)
 
 	ipifyIP, err := myIPFromIPify(context.Background())
 	if err != nil {
-		log.Fatal(err)
-		return 1
+		if failOnError {
+			return err
+		} else {
+			log.Error(err)
+		}
+	} else {
+		log.Infof("My External IP obtained using ipify.org: %q", ipifyIP)
+		if ip == "" {
+			log.Warnf("Using External IP obtained from ipify.org instead of Cloudflare")
+			ip = ipifyIP
+		}
 	}
-	log.Infof("My External IP obtained using ipify.org: %q", ipifyIP)
 
 	ipInfo, err := myIPFromIPInfo(context.Background())
 	if err != nil {
-		log.Fatal(err)
-		return 1
+		if failOnError {
+			return err
+		} else {
+			log.Error(err)
+		}
+	} else {
+		log.Infof("My External IP info obtained using ipinfo.io:\n%s", prettyPrintJSON(ipInfo))
+		if ip == "" {
+			log.Warnf("Using External IP obtained from ipinfo.io instead of Cloudflare")
+			ip = ipInfo.IP
+		}
 	}
-	log.Infof("My External IP info obtained using ipinfo.io:\n%s", prettyPrintJSON(ipInfo))
 
-	if cloudflareIP != ipInfo.IP {
-		log.Warnf(
-			"Conflicting External IP information between Cloudflare whoami (%s) and ipinfo.io (%s)",
-			cloudflareIP, ipInfo.IP)
-		log.Warnf("Using the External IP information from Cloudflare whoami as the trusted source for updating ...")
+	if ip == "" {
+		return fmt.Errorf("Unable to obtain External IP from any of the sources, skipping DNS record update ...")
 	}
-	if cloudflareIP != ipifyIP {
-		log.Warnf(
-			"Conflicting External IP information between Cloudflare whoami (%s) and ipify.org (%s)",
-			cloudflareIP, ipifyIP)
-		log.Warnf("Using the External IP information from Cloudflare whoami as the trusted source for updating ...")
+
+	if cloudflareIP != "" {
+		if cloudflareIP != ipInfo.IP {
+			log.Warnf(
+				"Conflicting External IP information between Cloudflare whoami (%s) and ipinfo.io (%s)",
+				cloudflareIP, ipInfo.IP)
+			log.Warnf("Using the External IP information from Cloudflare whoami as the trusted source for updating ...")
+		}
+		if cloudflareIP != ipifyIP {
+			log.Warnf(
+				"Conflicting External IP information between Cloudflare whoami (%s) and ipify.org (%s)",
+				cloudflareIP, ipifyIP)
+			log.Warnf("Using the External IP information from Cloudflare whoami as the trusted source for updating ...")
+		}
 	}
 
 	updated, err := updateCloudflareDNSRecord(
-		context.Background(), *cloudflareAPIToken, *cloudflareZoneName, *domainName, cloudflareIP)
+		context.Background(), *cloudflareAPIToken, *cloudflareZoneName, *domainName, ip)
 	if err != nil {
-		log.Fatal(err)
-		return 1
+		return err
 	}
 	if updated {
 		log.Infof("Updated External IP %q in the A record for domain %q", cloudflareIP, *domainName)
@@ -63,7 +88,44 @@ func run() int {
 		log.Infof("External IP %q in the A record for domain %q is already up to date", cloudflareIP, *domainName)
 	}
 
-	return 0
+	return nil
+}
+
+func run() int {
+	if !validateFlags() {
+		return 1
+	}
+
+	forever := *daemon
+	ranAtLeastOnce := false
+	result := 1
+
+	for forever || !ranAtLeastOnce {
+		startTime := time.Now()
+		nextUpdateTime := startTime.Add(*updateFreq)
+
+		if forever {
+			log.Infof("Beginning update ...")
+		}
+
+		err := runOnce(false)
+		if err != nil {
+			log.Errorf("Error querying External IP and updating DNS record, reason: %w", err)
+		} else {
+			endTime := time.Now()
+			if !forever {
+				result = 0
+			}
+			log.Infof("Update took %v since beginning at %v", endTime.Sub(startTime), startTime)
+		}
+
+		ranAtLeastOnce = true
+		if forever {
+			time.Sleep(time.Until(nextUpdateTime))
+		}
+	}
+
+	return result
 }
 
 func main() {

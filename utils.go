@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,17 +15,6 @@ func prettyPrintJSON(x interface{}) string {
 		return fmt.Sprintf("%#v", x)
 	}
 	return string(p)
-}
-
-// Returns true if a flag was passed in the command line invocation.
-func isFlagPassed(name string) bool {
-	found := false
-	flag.Visit(func(f *flag.Flag) {
-		if f.Name == name {
-			found = true
-		}
-	})
-	return found
 }
 
 func httpGet(ctx context.Context, uri string, comment string) ([]byte, error) {
