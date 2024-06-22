@@ -20,8 +20,23 @@ func updateExternalIP(ctx context.Context, token string, zone string, domain str
 			log.Error(err)
 		}
 	} else {
-		log.Infof("My External IP obtained using Cloudflare: %q", cloudflareIP)
+		log.Infof("My External IP obtained using Cloudflare: %s", cloudflareIP)
 		ip = cloudflareIP
+	}
+
+	ipAPIResp, err := myIPFromIPAPI(ctx)
+	if err != nil {
+		if failOnError {
+			return err
+		} else {
+			log.Error(err)
+		}
+	} else {
+		log.Infof("My External IP obtained using ipapi.is:   %s", ipAPIResp.IP)
+		if ip == "" {
+			log.Warnf("Using External IP obtained from ipapi.is instead of Cloudflare")
+			ip = ipAPIResp.IP
+		}
 	}
 
 	ipifyIP, err := myIPFromIPify(ctx)
@@ -32,7 +47,7 @@ func updateExternalIP(ctx context.Context, token string, zone string, domain str
 			log.Error(err)
 		}
 	} else {
-		log.Infof("My External IP obtained using ipify.org: %q", ipifyIP)
+		log.Infof("My External IP obtained using ipify.org:  %s", ipifyIP)
 		if ip == "" {
 			log.Warnf("Using External IP obtained from ipify.org instead of Cloudflare")
 			ip = ipifyIP
@@ -47,7 +62,7 @@ func updateExternalIP(ctx context.Context, token string, zone string, domain str
 			log.Error(err)
 		}
 	} else {
-		log.Infof("My External IP info obtained using ipinfo.io:\n%s", prettyPrintJSON(ipInfo))
+		log.Infof("My External IP obtained using ipinfo.io:  %s", ipInfo.IP)
 		if ip == "" {
 			log.Warnf("Using External IP obtained from ipinfo.io instead of Cloudflare")
 			ip = ipInfo.IP
