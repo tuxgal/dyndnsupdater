@@ -55,7 +55,7 @@ func run() int {
 		}
 
 		startTime := time.Now()
-		err := updateExternalIP(
+		ip, err := updateExternalIP(
 			context.Background(), *cloudflareAPIToken, *cloudflareZoneName, *domainName, !forever)
 		if err != nil {
 			log.Errorf("Error querying External IP and updating DNS record, reason: %w", err)
@@ -65,6 +65,7 @@ func run() int {
 				result = 0
 			}
 			log.Infof("Update took %v since beginning at %s", endTime.Sub(startTime), startTime.Format(timestampFormat))
+			log.Infof("Detailed External IP Info:\n%s", prettyPrintJSON(ip))
 		}
 
 		if forever {

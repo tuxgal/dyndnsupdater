@@ -9,13 +9,48 @@ const (
 	myIPFromCloudflareMaxRetries = 3
 )
 
-func updateExternalIP(ctx context.Context, token string, zone string, domain string, failOnError bool) error {
+type ExternalIPASNInfo struct {
+	ASN         uint32
+	Route       string
+	Description string
+	Country     string
+}
+
+type ExternalIPGeoLocationInfo struct {
+	City        string
+	State       string
+	ZipCode     string
+	Country     string
+	CountryCode string
+	Continent   string
+	Latitude    float64
+	Longitude   float64
+	Timezone    string
+	IsDST       bool
+}
+
+type ExternalIPNetworkProviderInfo struct {
+	Name    string
+	Type    string
+	Network string
+	Domain  string
+}
+
+type ExternalIPInfo struct {
+	IP       string
+	RIR      string
+	ASN      ExternalIPASNInfo
+	Geo      ExternalIPGeoLocationInfo
+	Provider ExternalIPNetworkProviderInfo
+}
+
+func updateExternalIP(ctx context.Context, token string, zone string, domain string, failOnError bool) (*ExternalIPInfo, error) {
 	ip := ""
 
 	cloudflareIP, err := myIPFromCloudflareWithRetries(myIPFromCloudflareMaxRetries)
 	if err != nil {
 		if failOnError {
-			return err
+			return nil, err
 		} else {
 			log.Error(err)
 		}
@@ -27,7 +62,7 @@ func updateExternalIP(ctx context.Context, token string, zone string, domain str
 	ipAPIResp, err := myIPFromIPAPI(ctx)
 	if err != nil {
 		if failOnError {
-			return err
+			return nil, err
 		} else {
 			log.Error(err)
 		}
@@ -42,7 +77,7 @@ func updateExternalIP(ctx context.Context, token string, zone string, domain str
 	ipifyIP, err := myIPFromIPify(ctx)
 	if err != nil {
 		if failOnError {
-			return err
+			return nil, err
 		} else {
 			log.Error(err)
 		}
@@ -57,7 +92,7 @@ func updateExternalIP(ctx context.Context, token string, zone string, domain str
 	ipInfo, err := myIPFromIPInfo(ctx)
 	if err != nil {
 		if failOnError {
-			return err
+			return nil, err
 		} else {
 			log.Error(err)
 		}
@@ -70,7 +105,7 @@ func updateExternalIP(ctx context.Context, token string, zone string, domain str
 	}
 
 	if ip == "" {
-		return fmt.Errorf("Unable to obtain External IP from any of the sources, skipping DNS record update ...")
+		return nil, fmt.Errorf("Unable to obtain External IP from any of the sources, skipping DNS record update ...")
 	}
 
 	if cloudflareIP != "" {
@@ -90,13 +125,13 @@ func updateExternalIP(ctx context.Context, token string, zone string, domain str
 
 	updated, err := updateCloudflareDNSRecord(ctx, token, zone, domain, ip)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if updated {
-		log.Infof("Updated External IP %q in the A record for domain %q", cloudflareIP, *domainName)
+		log.Infof("Updated External IP %s in the A record for domain %q", ip, domain)
 	} else {
-		log.Infof("External IP %q in the A record for domain %q is already up to date", cloudflareIP, *domainName)
+		log.Infof("External IP %s in the A record for domain %q is already up to date", ip, domain)
 	}
 
-	return nil
+	return toExternalIPInfo(ipAPIResp, ip), nil
 }

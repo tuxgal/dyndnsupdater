@@ -59,3 +59,34 @@ func myIPFromIPAPI(ctx context.Context) (*IPAPIResponse, error) {
 
 	return &result, nil
 }
+
+func toExternalIPInfo(ipapi *IPAPIResponse, ip string) *ExternalIPInfo {
+	return &ExternalIPInfo{
+		IP:  ip,
+		RIR: ipapi.RIR,
+		ASN: ExternalIPASNInfo{
+			ASN:         ipapi.ASN.ASN,
+			Route:       ipapi.ASN.Route,
+			Description: ipapi.ASN.Descr,
+			Country:     ipapi.ASN.Country,
+		},
+		Geo: ExternalIPGeoLocationInfo{
+			City:        ipapi.Location.City,
+			State:       ipapi.Location.State,
+			ZipCode:     ipapi.Location.Zip,
+			Country:     ipapi.Location.Country,
+			CountryCode: ipapi.Location.CountryCode,
+			Continent:   ipapi.Location.Continent,
+			Latitude:    ipapi.Location.Latitude,
+			Longitude:   ipapi.Location.Longitude,
+			Timezone:    ipapi.Location.Timezone,
+			IsDST:       ipapi.Location.IsDST,
+		},
+		Provider: ExternalIPNetworkProviderInfo{
+			Name:    ipapi.Company.Name,
+			Type:    ipapi.Company.Type,
+			Network: ipapi.Company.Network,
+			Domain:  ipapi.Company.Domain,
+		},
+	}
+}
