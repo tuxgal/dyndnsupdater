@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand/v2"
@@ -11,9 +12,27 @@ import (
 )
 
 const (
-	cloudflareCurrentIPTarget   = "whoami.cloudflare."
-	cloudflareCurrentIPResolver = "1.1.1.1:53"
+	cloudflareMyIPProviderName = "cloudflare"
+	cloudflareMyIPTarget       = "whoami.cloudflare."
+	cloudflareMyIPResolver     = "1.1.1.1:53"
+	cloudflareMyIPMaxRetries   = 3
 )
+
+type cloudflareMyIPProvider struct {
+}
+
+func newCloudflareMyIPProvider() *cloudflareMyIPProvider {
+	return &cloudflareMyIPProvider{}
+}
+
+func (i *cloudflareMyIPProvider) name() string {
+	return cloudflareMyIPProviderName
+}
+
+func (i *cloudflareMyIPProvider) myIP(ctx context.Context) (string, *myIPInfo, error) {
+	ip, err := myIPFromCloudflareWithRetries(cloudflareMyIPMaxRetries)
+	return ip, nil, err
+}
 
 func myIPFromCloudflare() (string, bool, error) {
 	client := dns.Client{}
@@ -23,13 +42,13 @@ func myIPFromCloudflare() (string, bool, error) {
 	msg.RecursionDesired = false
 	msg.Question = []dns.Question{
 		{
-			Name:   cloudflareCurrentIPTarget,
+			Name:   cloudflareMyIPTarget,
 			Qtype:  dns.TypeTXT,
 			Qclass: dns.ClassCHAOS,
 		},
 	}
 
-	resp, rtt, err := client.Exchange(&msg, cloudflareCurrentIPResolver)
+	resp, rtt, err := client.Exchange(&msg, cloudflareMyIPResolver)
 	if err != nil {
 		timeout := false
 		var opErr *net.OpError
@@ -45,8 +64,8 @@ func myIPFromCloudflare() (string, bool, error) {
 
 	log.Debugf(
 		"CH TXT record query for %q to %q took %v. Response:\n%s",
-		cloudflareCurrentIPTarget,
-		cloudflareCurrentIPResolver,
+		cloudflareMyIPTarget,
+		cloudflareMyIPResolver,
 		rtt,
 		prettyPrintJSON(resp))
 	if len(resp.Answer) == 0 {

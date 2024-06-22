@@ -30,7 +30,7 @@ func httpGet(ctx context.Context, uri string, comment string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	log.Debugf("%s - Obtained response:\n%s", comment, prettyPrintJSON(resp))
+	log.Debugf("%s - Obtained response (without body):\n%s", comment, prettyPrintJSON(resp))
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -42,6 +42,6 @@ func httpGet(ctx context.Context, uri string, comment string) ([]byte, error) {
 		return nil, fmt.Errorf("%s failed due to non-success status code: %d\nbody: %s", comment, resp.StatusCode, respStr)
 	}
 
-	log.Debugf("%s obtained response: %s", comment, respStr)
+	log.Debugf("%s obtained response body: %s", comment, respStr)
 	return body, nil
 }

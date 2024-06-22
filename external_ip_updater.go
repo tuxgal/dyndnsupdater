@@ -5,133 +5,74 @@ import (
 	"fmt"
 )
 
-const (
-	myIPFromCloudflareMaxRetries = 3
-)
-
-type ExternalIPASNInfo struct {
-	ASN         uint32
-	Route       string
-	Description string
-	Country     string
-}
-
-type ExternalIPGeoLocationInfo struct {
-	City        string
-	State       string
-	ZipCode     string
-	Country     string
-	CountryCode string
-	Continent   string
-	Latitude    float64
-	Longitude   float64
-	Timezone    string
-	IsDST       bool
-}
-
-type ExternalIPNetworkProviderInfo struct {
-	Name    string
-	Type    string
-	Network string
-	Domain  string
-}
-
-type ExternalIPInfo struct {
-	IP       string
-	RIR      string
-	ASN      ExternalIPASNInfo
-	Geo      ExternalIPGeoLocationInfo
-	Provider ExternalIPNetworkProviderInfo
-}
-
-func updateExternalIP(ctx context.Context, token string, zone string, domain string, failOnError bool) (*ExternalIPInfo, error) {
-	ip := ""
-
-	cloudflareIP, err := myIPFromCloudflareWithRetries(myIPFromCloudflareMaxRetries)
-	if err != nil {
-		if failOnError {
-			return nil, err
-		} else {
-			log.Error(err)
-		}
-	} else {
-		log.Infof("My External IP obtained using Cloudflare: %s", cloudflareIP)
-		ip = cloudflareIP
+func getMyExternalIP(ctx context.Context, failOnError bool) (*myIPInfo, error) {
+	if len(myIPProviders) == 0 {
+		return nil, fmt.Errorf("no My External IP providers configured")
 	}
 
-	ipAPIResp, err := myIPFromIPAPI(ctx)
-	if err != nil {
-		if failOnError {
-			return nil, err
+	var result *myIPInfo
+	resultIP := ""
+	resultSourceOfTruth := ""
+	primary := myIPProviders[0].name()
+
+	for i, p := range myIPProviders {
+		ip, info, err := p.myIP(ctx)
+		if err != nil {
+			if failOnError {
+				return nil, err
+			} else {
+				log.Error(err)
+			}
 		} else {
-			log.Error(err)
-		}
-	} else {
-		log.Infof("My External IP obtained using ipapi.is:   %s", ipAPIResp.IP)
-		if ip == "" {
-			log.Warnf("Using External IP obtained from ipapi.is instead of Cloudflare")
-			ip = ipAPIResp.IP
+			log.Infof("My External IP obtained using %s: %s", p.name(), ip)
+			if resultIP == "" {
+				resultIP = ip
+				resultSourceOfTruth = p.name()
+				if i != 0 {
+					log.Warnf("Using External IP obtained from non-primary provider %s instead of %s", p.name(), primary)
+				}
+			} else if ip != resultIP {
+				log.Warnf(
+					"Conflicting External IP information between %s (%s) and %s (%s)",
+					resultSourceOfTruth, resultIP, p.name(), ip)
+				log.Warnf("Using the External IP information from %s as the trusted source for updating ...",
+					resultSourceOfTruth)
+
+			}
+
+			if result == nil && info != nil && (resultIP == "" || resultIP == info.IP) {
+				result = info
+				log.Debugf("Using detailed External IP info from provider %s", p.name())
+			}
 		}
 	}
 
-	ipifyIP, err := myIPFromIPify(ctx)
-	if err != nil {
-		if failOnError {
-			return nil, err
-		} else {
-			log.Error(err)
-		}
-	} else {
-		log.Infof("My External IP obtained using ipify.org:  %s", ipifyIP)
-		if ip == "" {
-			log.Warnf("Using External IP obtained from ipify.org instead of Cloudflare")
-			ip = ipifyIP
-		}
-	}
-
-	ipInfo, err := myIPFromIPInfo(ctx)
-	if err != nil {
-		if failOnError {
-			return nil, err
-		} else {
-			log.Error(err)
-		}
-	} else {
-		log.Infof("My External IP obtained using ipinfo.io:  %s", ipInfo.IP)
-		if ip == "" {
-			log.Warnf("Using External IP obtained from ipinfo.io instead of Cloudflare")
-			ip = ipInfo.IP
-		}
-	}
-
-	if ip == "" {
+	if resultIP == "" {
 		return nil, fmt.Errorf("Unable to obtain External IP from any of the sources, skipping DNS record update ...")
 	}
 
-	if cloudflareIP != "" {
-		if ipInfo.IP != "" && cloudflareIP != ipInfo.IP {
-			log.Warnf(
-				"Conflicting External IP information between Cloudflare whoami (%s) and ipinfo.io (%s)",
-				cloudflareIP, ipInfo.IP)
-			log.Warnf("Using the External IP information from Cloudflare whoami as the trusted source for updating ...")
-		}
-		if ipifyIP != "" && cloudflareIP != ipifyIP {
-			log.Warnf(
-				"Conflicting External IP information between Cloudflare whoami (%s) and ipify.org (%s)",
-				cloudflareIP, ipifyIP)
-			log.Warnf("Using the External IP information from Cloudflare whoami as the trusted source for updating ...")
-		}
+	if resultIP != "" && result == nil {
+		result = &myIPInfo{IP: resultIP}
+		log.Warnf("Could only obtain the IP but no extra information ...")
+	}
+	return result, nil
+}
+
+func queryAndUpdateExternalIP(ctx context.Context, token string, zone string, domain string, failOnError bool) (*myIPInfo, error) {
+	ip, err := getMyExternalIP(ctx, failOnError)
+	if err != nil {
+		return nil, err
 	}
 
-	updated, err := updateCloudflareDNSRecord(ctx, token, zone, domain, ip)
+	updated, err := updateCloudflareDNSRecord(ctx, token, zone, domain, ip.IP)
 	if err != nil {
 		return nil, err
 	}
 	if updated {
-		log.Infof("Updated External IP %s in the A record for domain %q", ip, domain)
+		log.Infof("Updated External IP %s in the A record for domain %q", ip.IP, domain)
 	} else {
-		log.Infof("External IP %s in the A record for domain %q is already up to date", ip, domain)
+		log.Infof("External IP %s in the A record for domain %q is already up to date", ip.IP, domain)
 	}
 
-	return toExternalIPInfo(ipAPIResp, ip), nil
+	return ip, nil
 }
