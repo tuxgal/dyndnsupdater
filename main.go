@@ -91,6 +91,19 @@ func runOnce(failOnError bool) error {
 	return nil
 }
 
+func checkExporterTerminated(ch chan interface{}) bool {
+	timeout := time.NewTimer(100 * time.Millisecond)
+	defer timeout.Stop()
+
+	select {
+	case <-ch:
+		return true
+	case <-timeout.C:
+	}
+
+	return false
+}
+
 func run() int {
 	if !validateFlags() {
 		return 1
@@ -99,15 +112,29 @@ func run() int {
 	forever := *daemon
 	ranAtLeastOnce := false
 	result := 1
+	exporterTerminatedCh := make(chan interface{}, 1)
+
+	if forever {
+		go startExporter(exporterTerminatedCh, *listenHost, uint32(*listenPort), *metricsUri)
+		// Sleep for 200ms to give sufficient time for the metrics exporter
+		// http server to start up.
+		time.Sleep(time.Duration(200 * time.Millisecond))
+	}
 
 	for forever || !ranAtLeastOnce {
-		startTime := time.Now()
-		nextUpdateTime := startTime.Add(*updateFreq)
+		nextUpdateTime := time.Now().Add(*updateFreq)
 
 		if forever {
+			terminated := checkExporterTerminated(exporterTerminatedCh)
+			if terminated {
+				log.Errorf("Metrics exporter terminated, exiting ...")
+				break
+			}
+			log.Debugf("Metrics exporter is still alive, proceeding with querying and updating the External IP ...")
 			log.Infof("Beginning update ...")
 		}
 
+		startTime := time.Now()
 		err := runOnce(false)
 		if err != nil {
 			log.Errorf("Error querying External IP and updating DNS record, reason: %w", err)

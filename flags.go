@@ -13,6 +13,9 @@ var (
 	domainName         = flag.String("domainName", "", "The domain name whose A record is updated with the dynamically resolved external IP of the current machine")
 	cloudflareAPIToken = flag.String("cloudflareApiToken", "", "The Cloudflare scoped API token used for sending the API requests")
 	cloudflareZoneName = flag.String("cloudflareZoneName", "", "The Cloudflare DNS Zone name for the domain A record to be updated")
+	listenHost         = flag.String("listenHost", "localhost", "The hostname or IP on which the prometheus metrics exporter listens on")
+	listenPort         = flag.Uint("listenPort", 8080, "The port number on which the prometheus metrics exporter listens on")
+	metricsUri         = flag.String("metricsUri", "metrics", "The relative path suffix in the URI (without any leading or trailing slashes) where the metrics will be made available")
 )
 
 // Returns true if a flag was passed in the command line invocation.
