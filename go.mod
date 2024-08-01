@@ -3,7 +3,7 @@ module github.com/tuxdude/dyndnsupdater
 go 1.22
 
 require (
-	github.com/cloudflare/cloudflare-go v0.100.0
+	github.com/cloudflare/cloudflare-go v0.101.0
 	github.com/miekg/dns v1.1.61
 	github.com/prometheus/client_golang v1.19.1
 	github.com/tuxdude/zzzlog v0.2.2
@@ -15,8 +15,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.48.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
