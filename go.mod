@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/cloudflare/cloudflare-go v0.101.0
-	github.com/miekg/dns v1.1.61
+	github.com/miekg/dns v1.1.62
 	github.com/prometheus/client_golang v1.19.1
 	github.com/tuxdude/zzzlog v0.2.2
 	github.com/tuxdude/zzzlogi v0.1.0
