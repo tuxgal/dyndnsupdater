@@ -33,10 +33,10 @@ github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0leargg
 github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoGhij/e3PBqk=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
-github.com/tuxdude/zzzlog v0.2.3 h1:f9VkS0sJ8LAp9/wjW/qFdM90UJt5ITijphO0ILRerVM=
-github.com/tuxdude/zzzlog v0.2.3/go.mod h1:DHTkiOmpQbt5XtqvHFdD2C9ESd2Nbjd0ecKa941JG5s=
-github.com/tuxdude/zzzlogi v0.1.1 h1:/YcPkhFzrQlvZR++7v7z42k1l3pgsgMtcrg9QKiEXEU=
-github.com/tuxdude/zzzlogi v0.1.1/go.mod h1:pDoI7GNJZuYLZtVx4WL7lOQuECECY+XCHF6Sbv7YvzY=
+github.com/tuxdude/zzzlog v0.3.0 h1:HREeOHANV5YEs4NKr7y9iSu37q3ZKcD2CIJp0yc+D0c=
+github.com/tuxdude/zzzlog v0.3.0/go.mod h1:Q04MoIXLrohVY0J1ZkVznQd41u4pzpKwK74su7VWvwc=
+github.com/tuxdude/zzzlogi v0.1.2 h1:APwowwCALOA2QpcrSxcBME20gb+RVm3RZvRXH7DjJCE=
+github.com/tuxdude/zzzlogi v0.1.2/go.mod h1:pDoI7GNJZuYLZtVx4WL7lOQuECECY+XCHF6Sbv7YvzY=
 golang.org/x/mod v0.18.0 h1:5+9lSbEzPSdWkH32vYPBwEpX8KwDbM52Ud9xBUvNlb0=
 golang.org/x/mod v0.18.0/go.mod h1:hTbmBsO62+eylJbnUtE2MGJUyE7QWk4xUqPFrRgJ+7c=
 golang.org/x/net v0.28.0 h1:a9JDOJc5GMUJ0+UDqmLT86WiEy7iWyIhz8gz8E4e5hE=
