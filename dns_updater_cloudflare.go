@@ -7,10 +7,10 @@ import (
 	"github.com/cloudflare/cloudflare-go"
 )
 
-func getDNSRecord(ctx context.Context, api *cloudflare.API, zone string, domain string) (*cloudflare.DNSRecord, error) {
+func getDNSRecord(ctx context.Context, api *cloudflare.API, zone string, domain string) (string, *cloudflare.DNSRecord, error) {
 	zid, err := api.ZoneIDByName(zone)
 	if err != nil {
-		return nil, fmt.Errorf("failed to obtain Zone ID for zone %q, reason: %w", zone, err)
+		return "", nil, fmt.Errorf("failed to obtain Zone ID for zone %q, reason: %w", zone, err)
 	}
 	log.Debugf("Zone ID for zone %q: %q", zone, zid)
 
@@ -22,7 +22,7 @@ func getDNSRecord(ctx context.Context, api *cloudflare.API, zone string, domain 
 			Name: domain,
 		})
 	if err != nil {
-		return nil, fmt.Errorf(
+		return "", nil, fmt.Errorf(
 			"failed to list DNS A records for domain %q in zone %q, reason: %w",
 			domain, zone, err)
 	}
@@ -31,11 +31,11 @@ func getDNSRecord(ctx context.Context, api *cloudflare.API, zone string, domain 
 		domain, zone, prettyPrintJSON(records))
 
 	if len(records) != 1 {
-		return nil, fmt.Errorf(
+		return "", nil, fmt.Errorf(
 			"Expected %d A record for domain name %q, but obtained %d instead\nRecord(s):\n%s",
 			1, domain, len(records), prettyPrintJSON(records))
 	}
-	return &records[0], nil
+	return zid, &records[0], nil
 }
 
 func updateCloudflareDNSRecord(
@@ -46,7 +46,7 @@ func updateCloudflareDNSRecord(
 		return false, fmt.Errorf("failed to initialize API object, reason: %w", err)
 	}
 
-	origRecord, err := getDNSRecord(ctx, api, zone, domain)
+	zid, origRecord, err := getDNSRecord(ctx, api, zone, domain)
 	if err != nil {
 		return false, err
 	}
@@ -60,7 +60,7 @@ func updateCloudflareDNSRecord(
 
 	record, err := api.UpdateDNSRecord(
 		ctx,
-		cloudflare.ZoneIdentifier(origRecord.ZoneID),
+		cloudflare.ZoneIdentifier(zid),
 		cloudflare.UpdateDNSRecordParams{
 			Type:     "A",
 			Name:     origRecord.Name,
