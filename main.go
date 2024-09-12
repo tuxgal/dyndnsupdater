@@ -58,7 +58,7 @@ func run() int {
 		ip, err := queryAndUpdateExternalIP(
 			context.Background(), *cloudflareAPIToken, *cloudflareZoneName, *domainName, !forever)
 		if err != nil {
-			log.Errorf("Error querying External IP and updating DNS record, reason: %w", err)
+			log.Errorf("Error querying External IP and updating DNS record, reason: %s", err)
 		} else {
 			endTime := time.Now()
 			if !forever {
