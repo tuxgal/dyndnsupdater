@@ -6,7 +6,7 @@ require (
 	github.com/cloudflare/cloudflare-go v0.106.0
 	github.com/miekg/dns v1.1.62
 	github.com/prometheus/client_golang v1.20.4
-	github.com/tuxdude/zzzlog v0.3.3
+	github.com/tuxdude/zzzlog v0.3.4
 	github.com/tuxdude/zzzlogi v0.2.0
 )
 
