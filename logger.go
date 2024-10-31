@@ -3,20 +3,20 @@ package main
 import (
 	"flag"
 
-	"github.com/tuxdude/zzzlog"
-	"github.com/tuxdude/zzzlogi"
+	"github.com/tuxgal/tuxlog"
+	"github.com/tuxgal/tuxlogi"
 )
 
 var log = buildLogger()
 
-func buildLogger() zzzlogi.Logger {
+func buildLogger() tuxlogi.Logger {
 	flag.Parse()
 
-	config := zzzlog.NewConsoleLoggerConfig()
+	config := tuxlog.NewConsoleLoggerConfig()
 	if *debug {
-		config.MaxLevel = zzzlog.LvlDebug
+		config.MaxLevel = tuxlog.LvlDebug
 	} else {
-		config.MaxLevel = zzzlog.LvlInfo
+		config.MaxLevel = tuxlog.LvlInfo
 	}
-	return zzzlog.NewLogger(config)
+	return tuxlog.NewLogger(config)
 }

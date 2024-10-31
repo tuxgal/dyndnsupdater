@@ -1,4 +1,4 @@
-module github.com/tuxdude/dyndnsupdater
+module github.com/tuxgal/dyndnsupdater
 
 go 1.22
 
@@ -6,8 +6,8 @@ require (
 	github.com/cloudflare/cloudflare-go v0.108.0
 	github.com/miekg/dns v1.1.62
 	github.com/prometheus/client_golang v1.20.5
-	github.com/tuxdude/zzzlog v0.3.4
-	github.com/tuxdude/zzzlogi v0.2.0
+	github.com/tuxgal/tuxlog v0.4.0
+	github.com/tuxgal/tuxlogi v0.3.0
 )
 
 require (
