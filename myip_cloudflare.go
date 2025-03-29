@@ -79,7 +79,7 @@ func myIPFromCloudflare() (string, bool, error) {
 
 	txt, ok := resp.Answer[0].(*dns.TXT)
 	if !ok {
-		return "", false, fmt.Errorf("Expected type dns.TXT, but rather obtained: %T", resp.Answer[0])
+		return "", false, fmt.Errorf("expected type dns.TXT, but rather obtained: %T", resp.Answer[0])
 	}
 
 	if len(txt.Txt) > 1 {

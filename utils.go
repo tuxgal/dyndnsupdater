@@ -28,6 +28,7 @@ func httpGet(ctx context.Context, uri string, comment string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s failed,\nresp: %s\nreason: %w", comment, prettyPrintJSON(resp), err)
 	}
+	//nolint:errcheck
 	defer resp.Body.Close()
 
 	log.Debugf("%s - Obtained response (without body):\n%s", comment, prettyPrintJSON(resp))

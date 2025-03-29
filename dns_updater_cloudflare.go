@@ -32,7 +32,7 @@ func getDNSRecord(ctx context.Context, api *cloudflare.API, zone string, domain 
 
 	if len(records) != 1 {
 		return "", nil, fmt.Errorf(
-			"Expected %d A record for domain name %q, but obtained %d instead\nRecord(s):\n%s",
+			"expected %d A record for domain name %q, but obtained %d instead\nRecord(s):\n%s",
 			1, domain, len(records), prettyPrintJSON(records))
 	}
 	return zid, &records[0], nil

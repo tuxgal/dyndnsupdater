@@ -48,7 +48,7 @@ func getMyExternalIP(ctx context.Context, failOnError bool) (*myIPInfo, error) {
 	}
 
 	if resultIP == "" {
-		return nil, fmt.Errorf("Unable to obtain External IP from any of the sources, skipping DNS record update ...")
+		return nil, fmt.Errorf("unable to obtain External IP from any of the sources, skipping DNS record update")
 	}
 
 	if resultIP != "" && result == nil {
