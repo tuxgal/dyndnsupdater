@@ -3,7 +3,7 @@ module github.com/tuxgal/dyndnsupdater
 go 1.25.0
 
 require (
-	github.com/cloudflare/cloudflare-go v0.117.0
+	github.com/cloudflare/cloudflare-go v0.119.0
 	github.com/miekg/dns v1.1.72
 	github.com/prometheus/client_golang v1.24.0
 	github.com/tuxgal/tuxlog v0.4.0
